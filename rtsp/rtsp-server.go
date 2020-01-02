@@ -21,15 +21,18 @@ type Server struct {
 	TCPListener    *net.TCPListener
 	TCPPort        int
 	Stoped         bool
+	UDPLimit       bool
 	pushers        map[string]*Pusher // Path <-> Pusher
 	pushersLock    sync.RWMutex
 	addPusherCh    chan *Pusher
 	removePusherCh chan *Pusher
+	UDPPorts       chan int
 }
 
 var Instance *Server = &Server{
 	SessionLogger:  SessionLogger{log.New(os.Stdout, "[RTSPServer]", log.LstdFlags|log.Lshortfile)},
 	Stoped:         true,
+	UDPLimit:       false,
 	TCPPort:        utils.Conf().Section("rtsp").Key("port").MustInt(554),
 	pushers:        make(map[string]*Pusher),
 	addPusherCh:    make(chan *Pusher),
@@ -50,7 +53,25 @@ func (server *Server) Start() (err error) {
 	if err != nil {
 		return
 	}
-
+	ports := strings.Split(utils.Conf().Section("rtsp").Key("udp_port").MustString("0-0"), "-")
+	if len(ports) == 2 {
+		x, _ := strconv.Atoi(ports[0])
+		y, _ := strconv.Atoi(ports[1])
+		if x%2 != 0 {
+			x++
+		}
+		if y%2 != 1 {
+			y--
+		}
+		if y > x {
+			server.UDPPorts = make(chan int, (y-x)/2+1)
+			for i := x; i < y; i += 2 {
+				server.UDPPorts <- i
+			}
+			logger.Printf("UDP ports limit:[%d]-[%d]", x, y)
+			server.UDPLimit = true
+		}
+	}
 	localRecord := utils.Conf().Section("rtsp").Key("save_stream_to_local").MustInt(0)
 	ffmpeg := utils.Conf().Section("rtsp").Key("ffmpeg_path").MustString("")
 	m3u8_dir_path := utils.Conf().Section("rtsp").Key("m3u8_dir_path").MustString("")
@@ -261,4 +282,16 @@ func (server *Server) GetPusherSize() (size int) {
 	size = len(server.pushers)
 	server.pushersLock.RUnlock()
 	return
+}
+
+func (server *Server) GetUDPPorts() (rtp int) {
+	if len(server.UDPPorts) > 0 {
+		return <-server.UDPPorts
+	} else {
+		return 0
+	}
+}
+
+func (server *Server) RestoreUDPPorts(rtp int) {
+	server.UDPPorts <- rtp
 }

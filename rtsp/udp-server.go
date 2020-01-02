@@ -16,14 +16,16 @@ type UDPServer struct {
 	*Session
 	*RTSPClient
 
-	APort        int
-	AConn        *net.UDPConn
-	AControlPort int
-	AControlConn *net.UDPConn
-	VPort        int
-	VConn        *net.UDPConn
-	VControlPort int
-	VControlConn *net.UDPConn
+	APort         int
+	InternalAPort int
+	AConn         *net.UDPConn
+	AControlPort  int
+	AControlConn  *net.UDPConn
+	VPort         int
+	InternalVPort int
+	VConn         *net.UDPConn
+	VControlPort  int
+	VControlConn  *net.UDPConn
 
 	Stoped bool
 }
@@ -88,6 +90,12 @@ func (s *UDPServer) Stop() {
 		s.VControlConn.Close()
 		s.VControlConn = nil
 	}
+	if s.InternalAPort > 0 {
+		s.Session.Server.RestoreUDPPorts(s.InternalAPort)
+	}
+	if s.InternalVPort > 0 {
+		s.Session.Server.RestoreUDPPorts(s.InternalVPort)
+	}
 }
 
 func (s *UDPServer) SetupAudio() (err error) {
@@ -95,6 +103,16 @@ func (s *UDPServer) SetupAudio() (err error) {
 	addr, err := net.ResolveUDPAddr("udp", ":0")
 	if err != nil {
 		return
+	}
+	if s.Session.Server.UDPLimit {
+		if s.InternalAPort = s.Session.Server.GetUDPPorts(); s.InternalAPort > 0 {
+			addr, err = net.ResolveUDPAddr("udp", ":"+strconv.Itoa(s.InternalAPort))
+			if err != nil {
+				return
+			}
+		} else {
+			return
+		}
 	}
 	s.AConn, err = net.ListenUDP("udp", addr)
 	if err != nil {
@@ -143,6 +161,16 @@ func (s *UDPServer) SetupAudio() (err error) {
 	if err != nil {
 		return
 	}
+	if s.Session.Server.UDPLimit {
+		if s.InternalAPort > 0 {
+			addr, err = net.ResolveUDPAddr("udp", ":"+strconv.Itoa(s.InternalAPort+1))
+			if err != nil {
+				return
+			}
+		} else {
+			return
+		}
+	}
 	s.AControlConn, err = net.ListenUDP("udp", addr)
 	if err != nil {
 		return
@@ -188,6 +216,16 @@ func (s *UDPServer) SetupVideo() (err error) {
 	addr, err := net.ResolveUDPAddr("udp", ":0")
 	if err != nil {
 		return
+	}
+	if s.Session.Server.UDPLimit {
+		if s.InternalVPort = s.Session.Server.GetUDPPorts(); s.InternalVPort > 0 {
+			addr, err = net.ResolveUDPAddr("udp", ":"+strconv.Itoa(s.InternalVPort))
+			if err != nil {
+				return
+			}
+		} else {
+			return
+		}
 	}
 	s.VConn, err = net.ListenUDP("udp", addr)
 	if err != nil {
@@ -236,6 +274,16 @@ func (s *UDPServer) SetupVideo() (err error) {
 	addr, err = net.ResolveUDPAddr("udp", ":0")
 	if err != nil {
 		return
+	}
+	if s.Session.Server.UDPLimit {
+		if s.InternalVPort > 0 {
+			addr, err = net.ResolveUDPAddr("udp", ":"+strconv.Itoa(s.InternalVPort+1))
+			if err != nil {
+				return
+			}
+		} else {
+			return
+		}
 	}
 	s.VControlConn, err = net.ListenUDP("udp", addr)
 	if err != nil {

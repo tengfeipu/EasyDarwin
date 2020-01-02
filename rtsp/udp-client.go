@@ -2,23 +2,25 @@ package rtsp
 
 import (
 	"fmt"
-	"net"
-	"strings"
-
 	"github.com/penggy/EasyGoLib/utils"
+	"net"
+	"strconv"
+	"strings"
 )
 
 type UDPClient struct {
 	*Session
 
-	APort        int
-	AConn        *net.UDPConn
-	AControlPort int
-	AControlConn *net.UDPConn
-	VPort        int
-	VConn        *net.UDPConn
-	VControlPort int
-	VControlConn *net.UDPConn
+	APort         int
+	InternalAPort int
+	AConn         *net.UDPConn
+	AControlPort  int
+	AControlConn  *net.UDPConn
+	VPort         int
+	InternalVPort int
+	VConn         *net.UDPConn
+	VControlPort  int
+	VControlConn  *net.UDPConn
 
 	Stoped bool
 }
@@ -44,6 +46,12 @@ func (s *UDPClient) Stop() {
 		s.VControlConn.Close()
 		s.VControlConn = nil
 	}
+	if s.InternalAPort > 0 {
+		s.Session.Server.RestoreUDPPorts(s.InternalAPort)
+	}
+	if s.InternalVPort > 0 {
+		s.Session.Server.RestoreUDPPorts(s.InternalVPort)
+	}
 }
 
 func (c *UDPClient) SetupAudio() (err error) {
@@ -60,10 +68,23 @@ func (c *UDPClient) SetupAudio() (err error) {
 	if err != nil {
 		return
 	}
-	c.AConn, err = net.DialUDP("udp", nil, addr)
+	if c.Session.Server.UDPLimit {
+		if c.InternalAPort = c.Session.Server.GetUDPPorts(); c.InternalAPort > 0 {
+			Inaddr, erro := net.ResolveUDPAddr("udp", ":"+strconv.Itoa(c.InternalAPort))
+			if erro != nil {
+				return
+			}
+			c.AConn, err = net.DialUDP("udp", Inaddr, addr)
+		} else {
+			return
+		}
+	} else {
+		c.AConn, err = net.DialUDP("udp", nil, addr)
+	}
 	if err != nil {
 		return
 	}
+
 	networkBuffer := utils.Conf().Section("rtsp").Key("network_buffer").MustInt(1048576)
 	if err := c.AConn.SetReadBuffer(networkBuffer); err != nil {
 		logger.Printf("udp client audio conn set read buffer error, %v", err)
@@ -76,7 +97,19 @@ func (c *UDPClient) SetupAudio() (err error) {
 	if err != nil {
 		return
 	}
-	c.AControlConn, err = net.DialUDP("udp", nil, addr)
+	if c.Session.Server.UDPLimit {
+		if c.InternalAPort > 0 {
+			Inaddr, erro := net.ResolveUDPAddr("udp", ":"+strconv.Itoa(c.InternalAPort+1))
+			if erro != nil {
+				return
+			}
+			c.AControlConn, err = net.DialUDP("udp", Inaddr, addr)
+		} else {
+			return
+		}
+	} else {
+		c.AControlConn, err = net.DialUDP("udp", nil, addr)
+	}
 	if err != nil {
 		return
 	}
@@ -103,7 +136,19 @@ func (c *UDPClient) SetupVideo() (err error) {
 	if err != nil {
 		return
 	}
-	c.VConn, err = net.DialUDP("udp", nil, addr)
+	if c.Session.Server.UDPLimit {
+		if c.InternalVPort = c.Session.Server.GetUDPPorts(); c.InternalVPort > 0 {
+			Inaddr, erro := net.ResolveUDPAddr("udp", ":"+strconv.Itoa(c.InternalVPort))
+			if erro != nil {
+				return
+			}
+			c.VConn, err = net.DialUDP("udp", Inaddr, addr)
+		} else {
+			return
+		}
+	} else {
+		c.VConn, err = net.DialUDP("udp", nil, addr)
+	}
 	if err != nil {
 		return
 	}
@@ -119,10 +164,23 @@ func (c *UDPClient) SetupVideo() (err error) {
 	if err != nil {
 		return
 	}
-	c.VControlConn, err = net.DialUDP("udp", nil, addr)
+	if c.Session.Server.UDPLimit {
+		if c.InternalVPort > 0 {
+			Inaddr, erro := net.ResolveUDPAddr("udp", ":"+strconv.Itoa(c.InternalVPort+1))
+			if erro != nil {
+				return
+			}
+			c.VControlConn, err = net.DialUDP("udp", Inaddr, addr)
+		} else {
+			return
+		}
+	} else {
+		c.VControlConn, err = net.DialUDP("udp", nil, addr)
+	}
 	if err != nil {
 		return
 	}
+
 	if err := c.VControlConn.SetReadBuffer(networkBuffer); err != nil {
 		logger.Printf("udp client video control conn set read buffer error, %v", err)
 	}
