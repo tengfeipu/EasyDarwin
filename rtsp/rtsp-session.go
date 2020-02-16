@@ -246,7 +246,7 @@ func (session *Session) Start() {
 					Buffer: rtpBuf,
 				}
 			default:
-				logger.Printf("unknow rtp pack type, %v", pack.Type)
+				logger.Printf("unknow rtp pack type, %d", channel)
 				continue
 			}
 			if pack == nil {
