@@ -1,6 +1,6 @@
 ## 说明：
 
-本项目从Fork自EasyDarwin开源流媒体服务器（https://gitee.com/easydarwin/EasyDarwin）
+本项目从Fork自EasyDarwin开源流媒体服务器（https://github.com/EasyDarwin/EasyDarwin）
 
 master分支改动：新增了UDP端口可配置功能
 
