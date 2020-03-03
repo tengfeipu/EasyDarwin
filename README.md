@@ -1,10 +1,10 @@
-### 说明：
+## 说明：
 
 本项目从Fork自EasyDarwin开源流媒体服务器（https://gitee.com/easydarwin/EasyDarwin）
 
 master分支改动：新增了UDP端口可配置功能
 
-fix分支改动：修复了rtp包未知错误时空指针导致进程停止的问题
+fix分支改动：修复了rtp包未知错误时空指针导致进程停止的问题；在响应客户端DESCRIBE请求时增加Content-Type；
 
 # EasyDarwin开源流媒体服务器
 
