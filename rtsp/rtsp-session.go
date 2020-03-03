@@ -514,6 +514,7 @@ func (session *Session) handleRequest(req *Request) {
 		session.ACodec = pusher.ACodec()
 		session.VCodec = pusher.VCodec()
 		session.Conn.timeout = 0
+		res.Header["Content-Type"] = "application/sdp"
 		res.SetBody(session.Pusher.SDPRaw())
 	case "SETUP":
 		ts := req.Header["Transport"]
